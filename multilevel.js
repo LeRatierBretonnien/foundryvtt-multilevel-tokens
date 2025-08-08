@@ -581,15 +581,8 @@ class MultilevelTokens {
   }
 
   _filterRegionsAndUpdateLastTeleport(token, inRegions) {
-    let lastTeleport = this._lastTeleport[token._id];
-    if (lastTeleport) {
-      lastTeleport = lastTeleport.filter(id => inRegions.some(r => r._id === id));
-      inRegions = inRegions.filter(r => !lastTeleport.includes(r._id));
-      if (lastTeleport.length) {
-        this._lastTeleport[token._id] = lastTeleport;
-      } else {
-        delete this._lastTeleport[token._id];
-      }
+    if (this._lastTeleport[token._id]) {
+      return [];
     }
     return inRegions;
   }
@@ -866,12 +859,7 @@ class MultilevelTokens {
 
   _setLastTeleport(scene, token) {
     if (game.user.isGM) {
-      const teleportRegions = this._getFlaggedRegionsContainingToken(scene, token, ["in", "out"]);
-      if (teleportRegions.length) {
-        this._lastTeleport[token._id] = teleportRegions.map(r => r._id);
-      } else {
-        delete this._lastTeleport[token._id];
-      }
+      this._lastTeleport[token._id] = true;
     }
   }
 
@@ -1575,7 +1563,10 @@ class MultilevelTokens {
         const animationPromise = token.object?.animationContexts.get(animationName)?.promise;
 
         (animationPromise || Promise.resolve()).then(() => {
-          this._doTeleport(token.parent, token) || this._doLevelTeleport(token.parent, token);
+          const teleported = this._doTeleport(token.parent, token) || this._doLevelTeleport(token.parent, token);
+          if (!teleported) {
+            delete this._lastTeleport[token._id];
+          }
         })
       }
     }
